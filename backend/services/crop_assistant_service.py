@@ -4,9 +4,6 @@ from backend.services.agri_rag_service import agri_rag_service
 from backend.database import get_database
 
 class CropAssistantService:
-    def __init__(self):
-        pass
-
     async def analyze_crop_issue(
         self,
         farmer_id: str,
@@ -15,17 +12,17 @@ class CropAssistantService:
         follow_up_answers: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """
-        Processes voice query, retrieves grounded ICAR/IRRI knowledge,
-        prepares actionable safe guidance, handles uncertainty, and saves session.
+        Processes real farmer voice query, retrieves verified ICAR/IRRI agricultural factsheets,
+        prepares actionable safe guidance, handles uncertainty, and logs session to MongoDB.
         """
         db = get_database()
         farmer_context = None
 
-        # Retrieve personal farm memory from MongoDB
+        # Retrieve authentic personal farm memory from MongoDB if available
         if db is not None:
             farmer_context = await db["farmers"].find_one({"farmer_id": farmer_id})
 
-        # Query RAG engine
+        # Query RAG engine over official agricultural factsheets
         rag_result = agri_rag_service.retrieve_guidance(voice_query, farmer_context)
 
         # Build personalized spoken response in farmer's language
@@ -36,12 +33,15 @@ class CropAssistantService:
         else:
             spoken_response = self._build_english_response(rag_result, farmer_context, voice_query)
 
-        # Construct diagnosis package
+        farmer_display_name = "Farmer"
+        if farmer_context:
+            farmer_display_name = farmer_context.get("native_name") or farmer_context.get("name") or "Farmer"
+
         result = {
             "query": voice_query,
             "language": language,
             "farmer_id": farmer_id,
-            "farmer_name": farmer_context.get("name", "Farmer") if farmer_context else "Farmer",
+            "farmer_name": farmer_display_name,
             "crop_identified": rag_result.get("crop", "Paddy (ধান)"),
             "disease_name": rag_result.get("disease_name", "Uncertain Leaf Symptom"),
             "confidence": rag_result.get("confidence", 0.70),
@@ -54,7 +54,7 @@ class CropAssistantService:
             "citation": rag_result.get("source_citation", "ICAR - National Rice Research Institute & IRRI"),
             "severity": rag_result.get("severity", "Moderate"),
             "escalate_recommended": rag_result.get("escalate_recommended", False),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now().isoformat()
         }
 
         # Store in MongoDB conversation history
@@ -66,7 +66,7 @@ class CropAssistantService:
                     "query": voice_query,
                     "language": language,
                     "result": result,
-                    "created_at": datetime.utcnow()
+                    "created_at": datetime.now()
                 })
             except Exception as e:
                 print(f"Error saving conversation to MongoDB: {e}")

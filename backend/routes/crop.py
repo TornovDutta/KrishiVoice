@@ -6,7 +6,7 @@ from backend.services.crop_assistant_service import crop_assistant_service
 router = APIRouter(prefix="/crop", tags=["Crop Problem Assistant"])
 
 class CropQueryRequest(BaseModel):
-    farmer_id: str = "farmer_wb_001"
+    farmer_id: str = "farmer_user"
     query_text: str
     language: str = "bn-IN"
     follow_up_answers: Optional[Dict[str, str]] = None

@@ -15,24 +15,25 @@ class ExpertService:
         image_url: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Synthesizes a structured Case Summary for agricultural extension officers / KVK specialists.
+        Synthesizes a structured Case Summary for agricultural extension officers / KVK specialists
+        using the actual farmer's details from MongoDB.
         """
         db = get_database()
         farmer = None
         if db is not None:
             farmer = await db["farmers"].find_one({"farmer_id": farmer_id})
 
-        farmer_name = farmer.get("name", "Farmer") if farmer else "Ramesh Ghosh"
-        farmer_phone = farmer.get("phone", "+91 98321 45678") if farmer else "+91 98321 45678"
+        farmer_name = farmer.get("name") if farmer else "Farmer"
+        farmer_phone = farmer.get("phone", "Not provided") if farmer else "Not provided"
         district = farmer.get("district", "Purba Bardhaman") if farmer else "Purba Bardhaman"
-        village = farmer.get("village", "Memari") if farmer else "Memari"
+        village = farmer.get("village", "") if farmer else ""
 
         case_id = f"KV-{district[:3].upper()}-{uuid.uuid4().hex[:6].upper()}"
 
-        # Build concise case summary for extension worker
+        # Build authentic case summary for extension worker
         case_summary = {
             "case_id": case_id,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now().isoformat(),
             "status": "Escalated to KVK Specialist",
             "farmer_profile": {
                 "farmer_id": farmer_id,
@@ -40,14 +41,14 @@ class ExpertService:
                 "phone": farmer_phone,
                 "village": village,
                 "district": district,
-                "state": "West Bengal"
+                "state": farmer.get("state", "West Bengal") if farmer else "West Bengal"
             },
             "agronomic_details": {
                 "crop": crop,
                 "stage": growth_stage or "Tillering to Panicle Initiation",
                 "reported_symptoms": symptoms,
                 "severity_assessment": severity,
-                "ai_preliminary_hypothesis": "Ambiguous leaf spot symptoms (differential: Bipolaris oryzae vs Pyricularia oryzae). Immediate field examination advised."
+                "ai_preliminary_hypothesis": "Ambiguous symptoms reported by farmer. Field inspection or extension verification advised before chemical application."
             },
             "contact_options": {
                 "kisan_call_centre": {
@@ -57,10 +58,10 @@ class ExpertService:
                     "languages": ["Bengali", "Hindi", "English"]
                 },
                 "assigned_kvk": {
-                    "name": "Krishi Vigyan Kendra (KVK) Purba Bardhaman",
-                    "officer": "Dr. S. Chatterjee (Subject Matter Specialist - Plant Protection)",
-                    "phone": "+91 342 265 8921",
-                    "office_location": "Chinsurah / Burdwan Agro Campus"
+                    "name": f"Krishi Vigyan Kendra (KVK) {district}",
+                    "officer": "Subject Matter Specialist (Plant Protection)",
+                    "phone": "1800-180-1551",
+                    "office_location": f"{district} Agro Science Complex"
                 }
             },
             "notes": notes,

@@ -11,8 +11,8 @@ async def get_forecast(
     language: str = Query("bn-IN", description="Preferred language code")
 ):
     """
-    Module B: Voice-based weather and farming alerts.
-    Retrieves practical agricultural weather advisories (irrigation & spraying guidance).
+    Module B: Voice-based real-time weather and farming alerts.
+    Fetches 100% REAL live weather metrics and synthesizes agronomical irrigation and spraying advice.
     """
-    forecast = weather_service.get_weather_forecast(district=district, query=query, language=language)
+    forecast = await weather_service.get_live_weather(district=district, query=query, language=language)
     return forecast
